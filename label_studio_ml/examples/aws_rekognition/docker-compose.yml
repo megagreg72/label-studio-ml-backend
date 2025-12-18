@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  aws-rekognition-ml-backend:
+    build: .
+    image: aws-rekognition-ml-backend
+    container_name: aws-rekognition-ml-backend
+    ports:
+      - "9090:9090"
+    environment:
+      # AWS Credentials - Replace with your credentials or use IAM roles
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-1
+      
+      # AWS Rekognition Configuration
+      - REKOGNITION_PROJECT_ARN=arn:aws:rekognition:us-east-1:030179562632:project/sdi-object-detector/version/sdi-object-detector.2025-12-11T19.13.51/1765502031650
+      - MIN_CONFIDENCE=50
+      
+      # Label Studio Configuration (optional)
+      - LABEL_STUDIO_URL=${LABEL_STUDIO_URL:-http://localhost:8080}
+      - LABEL_STUDIO_API_KEY=${LABEL_STUDIO_API_KEY}
+      
+      # Flask Configuration
+      - PORT=9090
+      - LOG_LEVEL=INFO
+    
+    # Uncomment if using AWS IAM roles with ECS/EKS
+    # volumes:
+    #   - ~/.aws:/root/.aws:ro
+    
+    restart: unless-stopped
