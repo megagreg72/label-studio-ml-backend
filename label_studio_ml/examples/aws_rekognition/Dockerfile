@@ -5,15 +5,16 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements files
-COPY requirements.txt .
+# Install base requirements
 COPY requirements-base.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r requirements-base.txt
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the model code
 COPY model.py .

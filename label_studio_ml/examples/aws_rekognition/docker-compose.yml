@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
+  # Connects label-studio directly to Rekognition
   label-studio-ml-backend:
-    build: .
-    image: label-studio-ml-backend
+    build: ./label-studio-ml-backend/label_studio_ml/examples/aws_rekognition
     container_name: label-studio-ml-backend
     ports:
       - "9090:9090"
@@ -18,3 +16,63 @@ services:
     volumes:
       # copy-pastes your AWS credentials file and then keeps it in sync
       - ~/.aws:/root/.aws:ro
+    networks:
+      - label-studio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ## Main Label Studio application
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    container_name: label-studio-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - label-studio-db
+      - label-studio-ml-backend
+    environment:
+      - DJANGO_DB=default
+      - POSTGRE_NAME=label_studio_db
+      - POSTGRE_USER=postgres
+      - POSTGRE_PASSWORD=label_studio_postgres_password 
+      - POSTGRE_PORT=5432
+      - POSTGRE_HOST=label-studio-db
+      - LABEL_STUDIO_SECRET_KEY=change-me-to-a-long-random-string-12345
+      - LABEL_STUDIO_USERNAME=local@email.com
+      - LABEL_STUDIO_PASSWORD=localPassword
+      - "LANG=en_US.UTF-8"
+      - "LC_ALL=en_US.UTF-8"
+    volumes:
+      - ./label_studio_data:/label-studio/data
+    networks:
+      - label-studio-network
+    restart: unless-stopped
+
+  # Isolated database for Label Studio
+  label-studio-db:
+    image: postgres:15-alpine
+    hostname: label-studio-db
+    container_name: label-studio-db-container
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=label_studio_postgres_password 
+      - POSTGRES_DB=label_studio_db
+    volumes:
+      - ./label_studio_postgres_data:/var/lib/postgresql/data
+    networks:
+      - label-studio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  label-studio-network:
+    driver: bridge
